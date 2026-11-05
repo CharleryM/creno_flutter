@@ -1,0 +1,5 @@
+CREATE DATABASE IF NOT EXISTS `creno_shadow`;
+
+GRANT ALL PRIVILEGES ON `creno_shadow`.* TO 'creno'@'%';
+
+FLUSH PRIVILEGES;

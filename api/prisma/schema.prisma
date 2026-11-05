@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  USER
+  OWNER
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole @default(USER)
+
+  studios      Studio[]
+  reservations Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Studio {
+  id          String  @id @default(uuid())
+  ownerId     String
+
+  name        String
+  description String? @db.Text
+  address     String
+  postalCode  String
+  city        String
+  phone       String?
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("studios")
+}
+
+model Course {
+  id       String @id @default(uuid())
+  studioId String
+
+  title       String
+  discipline  String
+  description String? @db.Text
+
+  startAt         DateTime
+  durationMinutes Int
+
+  priceCents Int
+  capacity   Int
+
+  status CourseStatus @default(DRAFT)
+
+  studio       Studio        @relation(fields: [studioId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studioId, startAt])
+  @@index([status, startAt])
+  @@map("courses")
+}
+
+model Reservation {
+  id       String @id @default(uuid())
+  userId   String
+  courseId String
+
+  status ReservationStatus @default(PENDING)
+
+  amountCents           Int
+  stripePaymentIntentId String? @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([courseId, status])
+  @@map("reservations")
+}
